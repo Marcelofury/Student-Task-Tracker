@@ -11,15 +11,14 @@
     tools:context=".RegisterActivity">
 
     <!-- Circular Logo -->
-    <ImageView
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/logoRegister"
-        android:layout_width="110dp"
-        android:layout_height="110dp"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:contentDescription="@string/logo_desc"
         android:src="@drawable/student_task_tracker_logo"
         android:scaleType="centerCrop"
-        android:background="@drawable/circle_background"
-        android:padding="8dp"
-        android:clipToOutline="true"
+        app:shapeAppearanceOverlay="@style/CircleImageView"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
