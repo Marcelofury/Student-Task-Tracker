@@ -2,13 +2,16 @@
 package com.example.studenttasktracker2;
 
 import android.content.Intent;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -17,8 +20,9 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     private ListView taskListView;
-    private DatabaseHelper dbHelper;
-    private final ArrayList<Integer> taskIds = new ArrayList<>();
+    private SessionManager sessionManager;
+    private long userId;
+    private final ArrayList<Long> taskIds = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,9 +41,15 @@ public class MainActivity extends AppCompatActivity {
         Button btnSettings = findViewById(R.id.btnSettings);
         Button btnLogout = findViewById(R.id.btnLogout);
 
-        dbHelper = new DatabaseHelper(this);
+        sessionManager = new SessionManager(this);
+        if (!sessionManager.isLoggedIn()) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+        userId = sessionManager.getUserId();
 
-        // Load tasks from DB
+        // Load tasks from backend
         loadTasks();
 
         // Tap a task to mark it completed
@@ -47,12 +57,23 @@ public class MainActivity extends AppCompatActivity {
             if (position < 0 || position >= taskIds.size()) {
                 return;
             }
-            int taskId = taskIds.get(position);
-            boolean updated = dbHelper.updateTaskStatus(taskId, "Completed");
-            if (updated) {
-                Toast.makeText(this, "Task marked as completed", Toast.LENGTH_SHORT).show();
-                loadTasks();
-            } else {
+            long taskId = taskIds.get(position);
+            try {
+                JSONObject body = new JSONObject();
+                body.put("status", "Completed");
+                ApiClient.patch("/api/tasks/" + taskId + "/status", body, new ApiClient.Callback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        Toast.makeText(MainActivity.this, "Task marked as completed", Toast.LENGTH_SHORT).show();
+                        loadTasks();
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (JSONException e) {
                 Toast.makeText(this, "Failed to update task", Toast.LENGTH_SHORT).show();
             }
         });
@@ -73,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         btnSettings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
 
         btnLogout.setOnClickListener(v -> {
-            // Go back to LoginActivity and clear task stack
+            sessionManager.clear();
             Intent intent = new Intent(this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
@@ -87,24 +108,34 @@ public class MainActivity extends AppCompatActivity {
     private void loadTasks() {
         ArrayList<String> taskTitles = new ArrayList<>();
         taskIds.clear();
-        Cursor cursor = dbHelper.getAllTasks();
-
-        if (cursor.moveToFirst()) {
-            do {
-                int taskId = cursor.getInt(cursor.getColumnIndexOrThrow("id"));
-                String title = cursor.getString(cursor.getColumnIndexOrThrow("title"));
-                String status = cursor.getString(cursor.getColumnIndexOrThrow("status"));
-                if ("Completed".equalsIgnoreCase(status)) {
-                    continue;
+        ApiClient.get("/api/tasks?userId=" + userId, new ApiClient.Callback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                JSONArray tasks = response.optJSONArray("tasks");
+                if (tasks != null) {
+                    for (int i = 0; i < tasks.length(); i++) {
+                        JSONObject task = tasks.optJSONObject(i);
+                        if (task == null) continue;
+                        String status = task.optString("status", "Pending");
+                        if ("Completed".equalsIgnoreCase(status)) {
+                            continue;
+                        }
+                        taskIds.add(task.optLong("id"));
+                        taskTitles.add(task.optString("title", "Untitled"));
+                    }
                 }
-                taskIds.add(taskId);
-                taskTitles.add(title);
-            } while (cursor.moveToNext());
-        }
-        cursor.close();
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, taskTitles);
-        taskListView.setAdapter(adapter);
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, taskTitles);
+                taskListView.setAdapter(adapter);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(MainActivity.this, android.R.layout.simple_list_item_1, taskTitles);
+                taskListView.setAdapter(adapter);
+            }
+        });
     }
 
     @Override
