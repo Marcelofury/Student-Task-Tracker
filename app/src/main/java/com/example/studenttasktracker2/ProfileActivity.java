@@ -1,8 +1,6 @@
 package com.example.studenttasktracker2;
 
 import android.app.AlertDialog;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.widget.Button;
@@ -13,11 +11,14 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class ProfileActivity extends AppCompatActivity {
 
     private TextView tvUserName, tvUserEmail, tvStudentId, tvCourse, tvMotivation;
     private int currentUserId = -1;
-    private DatabaseHelper dbHelper;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +33,7 @@ public class ProfileActivity extends AppCompatActivity {
         tvMotivation = findViewById(R.id.tvMotivation);
         Button btnEditProfile = findViewById(R.id.btnEditProfile);
 
-        // Initialize database helper
-        dbHelper = new DatabaseHelper(this);
+        sessionManager = new SessionManager(this);
 
         // Load user profile
         loadUserProfile();
@@ -42,31 +42,22 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void loadUserProfile() {
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
-
-        // Query first user in the table
-        Cursor cursor = db.rawQuery("SELECT id, name, email FROM users LIMIT 1", null);
-
-        if (cursor.moveToFirst()) {
-            // Get column values
-            int userId = cursor.getInt(cursor.getColumnIndexOrThrow("id"));
-            currentUserId = userId;
-            String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
-            String email = cursor.getString(cursor.getColumnIndexOrThrow("email"));
-            String studentId = "STU-" + userId;
-            String course = "Not set";
-
-            // Set values using string resources
-            tvUserName.setText(getString(R.string.name_label, name));
-            tvUserEmail.setText(getString(R.string.email_label, email));
-            tvStudentId.setText(getString(R.string.student_id_label, studentId));
-            tvCourse.setText(getString(R.string.course_label, course));
-            tvMotivation.setText(getString(R.string.motivation_text, name));
-
-        } else {
+        if (!sessionManager.isLoggedIn()) {
             Toast.makeText(this, R.string.no_user_data, Toast.LENGTH_SHORT).show();
+            return;
         }
-        cursor.close();
+
+        currentUserId = (int) sessionManager.getUserId();
+        String name = sessionManager.getUserName();
+        String email = sessionManager.getUserEmail();
+        String studentId = "STU-" + currentUserId;
+        String course = "Not set";
+
+        tvUserName.setText(getString(R.string.name_label, name));
+        tvUserEmail.setText(getString(R.string.email_label, email));
+        tvStudentId.setText(getString(R.string.student_id_label, studentId));
+        tvCourse.setText(getString(R.string.course_label, course));
+        tvMotivation.setText(getString(R.string.motivation_text, name));
     }
 
     private void showEditProfileDialog() {
@@ -107,12 +98,26 @@ public class ProfileActivity extends AppCompatActivity {
                         return;
                     }
 
-                    boolean updated = dbHelper.updateUserProfile(currentUserId, newName, newEmail);
-                    if (updated) {
-                        Toast.makeText(this, "Profile updated", Toast.LENGTH_SHORT).show();
-                        loadUserProfile();
-                    } else {
-                        Toast.makeText(this, "Failed to update profile", Toast.LENGTH_SHORT).show();
+                    try {
+                        JSONObject body = new JSONObject();
+                        body.put("name", newName);
+                        body.put("email", newEmail);
+
+                        ApiClient.patch("/api/auth/profile/" + currentUserId, body, new ApiClient.Callback() {
+                            @Override
+                            public void onSuccess(JSONObject response) {
+                                sessionManager.saveUser(currentUserId, newName, newEmail);
+                                Toast.makeText(ProfileActivity.this, "Profile updated", Toast.LENGTH_SHORT).show();
+                                loadUserProfile();
+                            }
+
+                            @Override
+                            public void onError(String errorMessage) {
+                                Toast.makeText(ProfileActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    } catch (JSONException e) {
+                        Toast.makeText(ProfileActivity.this, "Failed to build profile update request", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("Cancel", null)
