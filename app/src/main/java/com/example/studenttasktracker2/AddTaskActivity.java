@@ -8,13 +8,17 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Calendar;
 
 public class AddTaskActivity extends AppCompatActivity {
 
     private EditText etTitle, etDescription, etDueDate;
     private Button btnSave;
-    private DatabaseHelper dbHelper;
+    private SessionManager sessionManager;
+    private long userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,7 +26,7 @@ public class AddTaskActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_task);
 
         initViews();
-        setupDatabase();
+        setupSession();
         setupListeners();
     }
 
@@ -34,9 +38,9 @@ public class AddTaskActivity extends AppCompatActivity {
         btnSave = findViewById(R.id.btnSaveTask);
     }
 
-    // Initialize database
-    private void setupDatabase() {
-        dbHelper = new DatabaseHelper(this);
+    private void setupSession() {
+        sessionManager = new SessionManager(this);
+        userId = sessionManager.getUserId();
     }
 
     // Setup listeners
@@ -87,19 +91,32 @@ public class AddTaskActivity extends AppCompatActivity {
             return;
         }
 
-        // Insert into database
-        boolean isInserted = dbHelper.insertTask(title, description, dueDate);
+        if (userId == -1) {
+            Toast.makeText(this, "Login required", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        if (isInserted) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("userId", userId);
+            body.put("title", title);
+            body.put("description", description);
+            body.put("due_date", dueDate);
 
-            Toast.makeText(this, getString(R.string.task_saved), Toast.LENGTH_SHORT).show();
+            ApiClient.post("/api/tasks", body, new ApiClient.Callback() {
+                @Override
+                public void onSuccess(JSONObject response) {
+                    Toast.makeText(AddTaskActivity.this, getString(R.string.task_saved), Toast.LENGTH_SHORT).show();
+                    clearFields();
+                    finish();
+                }
 
-            clearFields();
-
-            finish(); // back to dashboard
-
-        } else {
-
+                @Override
+                public void onError(String errorMessage) {
+                    Toast.makeText(AddTaskActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                }
+            });
+        } catch (JSONException e) {
             Toast.makeText(this, getString(R.string.task_failed), Toast.LENGTH_SHORT).show();
         }
     }
