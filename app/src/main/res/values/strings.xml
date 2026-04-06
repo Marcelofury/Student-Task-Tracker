@@ -1,0 +1,87 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- App -->
+    <string name="app_name">Student Task Tracker</string>
+    <!-- Add Task Screen -->
+    <string name="add_task_title">Add New Task</string>
+    <string name="task_title_hint">Enter Task Title</string>
+    <string name="task_description_hint">Enter Task Description</string>
+    <string name="due_date_hint">Select Due Date</string>
+    <string name="save_task">Save Task</string>
+
+    <!-- Validation / Messages -->
+    <string name="error_title_required">Task title is required</string>
+    <string name="error_due_date_required">Select due date</string>
+    <string name="task_saved">Task saved successfully</string>
+    <string name="task_failed">Error saving task</string>
+    <string name="profile_title">Student Profile</string>
+    <string name="name_label">Name: %s</string>
+    <string name="email_label">Email: %s</string>
+    <string name="student_id_label">Student ID: %s</string>
+    <string name="course_label">Course: %s</string>
+    <string name="motivation_text">Stay organized and achieve your academic goals with Student Task Tracker, %s!</string>
+    <string name="no_user_data">No user data found</string>
+    <string name="error_loading_profile">Error loading profile</string>
+    <string name="welcome_student">Welcome Student!</string>
+    <string name="todo">TODO</string>
+    <string name="stay_organized_track_your_assignments_achieve_your_goals">Stay organized. Track your assignments. Achieve your goals.</string>
+    <string name="login">Login</string>
+    <string name="don_t_have_an_account_register">Don\'t have an account? Register</string>
+    <string name="reset_password">Reset Password</string>
+    <string name="enter_your_email">Enter your email</string>
+    <string name="new_password">New Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="create_account">Create Account</string>
+    <string name="full_name">Full Name</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="register">Register</string>
+    <string name="confirm__password">Confirm Password</string>
+    <string name="email_">Email</string>
+    <string name="login_">Login</string>
+    <string name="password_">Password</string>
+    <string name="log_in">Login</string>
+    <string name="forgot_password_reset">Forgot Password? Reset</string>
+    <string name="to_do">TODO</string>
+    <string name="student_task_tracker">Student Task Tracker</string>
+    <string name="plan_smart_achieve_more">Plan Smart. Achieve More.</string>
+    <string name="_2026_behangana_keneth_software_engineer">© 2026 Behangana Keneth | Software Engineer</string>
+    <string name="todo_">TODO</string>
+    <string name="_login">Login</string>
+    <string name="don_t_have_an_account_register_">Don\'t have an account? Register</string>
+    <string name="stay_organized_track_your_assignments_achieve_your_goals_">Stay organized. Track your assignments. Achieve your goals.</string>
+    <string name="student_task_tracker_">Student Task Tracker</string>
+    <string name="plan_smart_achieve_more_">Plan Smart. Achieve More.</string>
+    <string name="_2026_behangana_keneth_software_engineer_">© 2026 Behangana Keneth | Software Engineer</string>
+    <string name="register_">Register</string>
+    <string name="confirm_password__">Confirm Password</string>
+    <string name="full_name2">Full Name</string>
+    <string name="email2">Email</string>
+    <string name="password2">Password</string>
+    <string name="todo2">TODO</string>
+    <string name="create_account4">Create Account</string>
+    <string name="stay_organized_and_achieve_your_academic_goals_with_student_task_tracker">Stay organized and achieve your academic goals with Student Task Tracker.</string>
+    <string name="course">Course:</string>
+    <string name="student_id">Student ID:</string>
+    <string name="student_profile">Student Profile</string>
+    <string name="profile_image">Profile Image</string>
+    <string name="search" tools:ignore="DuplicateDefinition">🔍 Search</string>
+    <string name="search_task">🔍 Search task…</string>
+    <string name="search_tasks">Search Tasks</string>
+    <string name="auto_backup_tasks">Auto Backup Tasks</string>
+    <string name="settings" tools:ignore="DuplicateDefinition">Settings</string>
+    <string name="enable_notifications">Enable Notifications</string>
+    <string name="task_reminders">Task Reminders</string>
+    <string name="sound_alerts">Sound Alerts</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="completed_tasks">Completed Tasks</string>
+    <string name="delete_all_tasks">Delete All Tasks</string>
+    <string name="task_dashboard" tools:ignore="DuplicateDefinition">Task Dashboard</string>
+    <string name="add_task" tools:ignore="DuplicateDefinition">📌 Add Task</string>
+    <string name="completed">Completed</string>
+    <string name="filter">Filter</string>
+    <string name="profile">Profile</string>
+    <string name="logout">Logout</string>
+    <string name="logo_desc">App Logo</string>
+    <string name="calendar">📅 Calendar</string>
+    <string name="filter_tasks">Filter Tasks</string>
+</resources>
