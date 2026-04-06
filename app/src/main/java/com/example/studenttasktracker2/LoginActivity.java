@@ -10,13 +10,16 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class LoginActivity extends AppCompatActivity {
 
     EditText etEmail, etPassword;
     Button btnLogin;
     TextView tvRegister, tvForgotPassword;
 
-    DatabaseHelper db; // 🔥 database
+    SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,8 +33,7 @@ public class LoginActivity extends AppCompatActivity {
         tvRegister = findViewById(R.id.tvRegister);
         tvForgotPassword = findViewById(R.id.tvForgotPassword);
 
-        // Initialize database
-        db = new DatabaseHelper(this);
+        sessionManager = new SessionManager(this);
 
         // Login Button
         btnLogin.setOnClickListener(v -> {
@@ -55,17 +57,37 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
 
-            // 🔥 REAL LOGIN CHECK (SQLite)
-            if (db.checkUser(email, password)) {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("email", email);
+                body.put("password", password);
 
-                Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
+                ApiClient.post("/api/auth/login", body, new ApiClient.Callback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        JSONObject user = response.optJSONObject("user");
+                        if (user == null) {
+                            Toast.makeText(LoginActivity.this, "Invalid server response", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
 
-                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                startActivity(intent);
-                finish(); // prevents going back to log in
+                        long userId = user.optLong("id", -1);
+                        String userName = user.optString("name", "");
+                        String userEmail = user.optString("email", email);
+                        sessionManager.saveUser(userId, userName, userEmail);
 
-            } else {
-                Toast.makeText(LoginActivity.this, "Invalid credentials", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
+                        startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                        finish();
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (JSONException e) {
+                Toast.makeText(LoginActivity.this, "Failed to build login request", Toast.LENGTH_SHORT).show();
             }
         });
 
