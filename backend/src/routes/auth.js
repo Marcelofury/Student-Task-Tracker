@@ -103,3 +103,30 @@ authRouter.post("/forgot-password", async (req, res, next) => {
     return next(err);
   }
 });
+
+authRouter.patch("/profile/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: "name and email are required" });
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .update({ name, email })
+      .eq("id", id)
+      .select("id, name, email")
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    return res.json({ success: true, user: data });
+  } catch (err) {
+    return next(err);
+  }
+});
