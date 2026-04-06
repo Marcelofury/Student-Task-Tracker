@@ -1,8 +1,6 @@
 package com.example.studenttasktracker2;
 
 import android.annotation.SuppressLint;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -11,6 +9,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -21,7 +22,8 @@ public class CalendarActivity extends AppCompatActivity {
     private static final String TAG = "CalendarActivity";
 
     private TextView tvMonth, tvTaskCount;
-    private DatabaseHelper dbHelper;
+    private SessionManager sessionManager;
+    private long userId;
 
     private long selectedDateMillis;
 
@@ -35,7 +37,8 @@ public class CalendarActivity extends AppCompatActivity {
         tvTaskCount = findViewById(R.id.tvTaskCount);
         Button btnReviewTasks = findViewById(R.id.btnReviewTasks);
 
-        dbHelper = new DatabaseHelper(this);
+        sessionManager = new SessionManager(this);
+        userId = sessionManager.getUserId();
 
         // Set initial date
         selectedDateMillis = calendarView.getDate();
@@ -60,25 +63,23 @@ public class CalendarActivity extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     private void updateDueTasks(long dateMillis) {
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
         SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());
         String dateString = sdf.format(new Date(dateMillis));
 
-        int total = 0;
-        try (Cursor cursor = db.rawQuery(
-            "SELECT COUNT(*) AS total FROM tasks WHERE due_date = ?",
-                new String[]{dateString})) {
-
-            if (cursor.moveToFirst()) {
-                total = cursor.getInt(cursor.getColumnIndexOrThrow("total"));
+        ApiClient.get("/api/tasks?userId=" + userId + "&due_date=" + dateString, new ApiClient.Callback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                JSONArray tasks = response.optJSONArray("tasks");
+                int total = tasks == null ? 0 : tasks.length();
+                tvTaskCount.setText("Total Due Tasks Today: " + total);
             }
 
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to query due tasks", e);
-            Toast.makeText(this, "Error loading tasks", Toast.LENGTH_SHORT).show();
-        }
-
-        tvTaskCount.setText("Total Due Tasks Today: " + total);
+            @Override
+            public void onError(String errorMessage) {
+                Log.e(TAG, "Failed to query due tasks: " + errorMessage);
+                Toast.makeText(CalendarActivity.this, "Error loading tasks", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private long getMillisFromDate(int year, int month, int day) {
