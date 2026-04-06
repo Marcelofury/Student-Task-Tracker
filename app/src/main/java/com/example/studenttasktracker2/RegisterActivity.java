@@ -9,11 +9,13 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class RegisterActivity extends AppCompatActivity {
 
     EditText etName, etEmail, etPassword, etConfirmPassword;
     Button btnRegister;
-    DatabaseHelper db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,8 +27,6 @@ public class RegisterActivity extends AppCompatActivity {
         etPassword = findViewById(R.id.etRegPassword);
         etConfirmPassword = findViewById(R.id.etConfirmPassword);
         btnRegister = findViewById(R.id.btnRegister);
-
-        db = new DatabaseHelper(this);
 
         btnRegister.setOnClickListener(v -> {
             String name = etName.getText().toString().trim();
@@ -65,17 +65,27 @@ public class RegisterActivity extends AppCompatActivity {
                 return;
             }
 
-            // Database operations
-            if (db.checkEmail(email)) {
-                Toast.makeText(this, "User already exists", Toast.LENGTH_SHORT).show();
-            } else {
-                if (db.insertUser(name, email, password)) {
-                    Toast.makeText(this, "Registered Successfully", Toast.LENGTH_SHORT).show();
-                    startActivity(new Intent(this, LoginActivity.class));
-                    finish();
-                } else {
-                    Toast.makeText(this, "Registration Failed", Toast.LENGTH_SHORT).show();
-                }
+            try {
+                JSONObject body = new JSONObject();
+                body.put("name", name);
+                body.put("email", email);
+                body.put("password", password);
+
+                ApiClient.post("/api/auth/register", body, new ApiClient.Callback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        Toast.makeText(RegisterActivity.this, "Registered Successfully", Toast.LENGTH_SHORT).show();
+                        startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
+                        finish();
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (JSONException e) {
+                Toast.makeText(this, "Failed to build registration request", Toast.LENGTH_SHORT).show();
             }
         });
     }
