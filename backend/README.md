@@ -40,6 +40,8 @@ Health check: `GET /health`
   - body: `{ "email": "...", "password": "..." }`
 - `POST /api/auth/forgot-password`
   - body: `{ "email": "...", "newPassword": "..." }`
+- `PATCH /api/auth/profile/:id`
+  - body: `{ "name": "...", "email": "..." }`
 
 ### Tasks
 
