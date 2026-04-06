@@ -8,10 +8,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class ForgotPasswordActivity extends AppCompatActivity {
 
     private EditText etEmail, etNewPassword, etConfirmPassword;
-    private DatabaseHelper db; // your database helper
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,9 +24,6 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         etNewPassword = findViewById(R.id.etNewPassword);
         etConfirmPassword = findViewById(R.id.etConfirmPassword);
         Button btnResetPassword = findViewById(R.id.btnResetPassword);
-
-        // Initialize database helper
-        db = new DatabaseHelper(this);
 
         btnResetPassword.setOnClickListener(v -> {
             String email = etEmail.getText().toString().trim();
@@ -42,18 +41,26 @@ public class ForgotPasswordActivity extends AppCompatActivity {
                 return;
             }
 
-            // Database operations
-            if (!db.checkEmail(email)) {
-                Toast.makeText(this, "Email not found", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            try {
+                JSONObject body = new JSONObject();
+                body.put("email", email);
+                body.put("newPassword", newPass);
 
-            if (db.updatePassword(email, newPass)) {
-                Toast.makeText(this, "Password Reset Successful", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(this, LoginActivity.class));
-                finish();
-            } else {
-                Toast.makeText(this, "Password reset failed. Try again.", Toast.LENGTH_SHORT).show();
+                ApiClient.post("/api/auth/forgot-password", body, new ApiClient.Callback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        Toast.makeText(ForgotPasswordActivity.this, "Password Reset Successful", Toast.LENGTH_SHORT).show();
+                        startActivity(new Intent(ForgotPasswordActivity.this, LoginActivity.class));
+                        finish();
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        Toast.makeText(ForgotPasswordActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (JSONException e) {
+                Toast.makeText(this, "Failed to build reset request", Toast.LENGTH_SHORT).show();
             }
         });
     }
