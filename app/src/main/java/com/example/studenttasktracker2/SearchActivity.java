@@ -1,7 +1,5 @@
 package com.example.studenttasktracker2;
 
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -11,13 +9,20 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import java.util.ArrayList;
 
 public class SearchActivity extends AppCompatActivity {
 
     private EditText etSearch;
     private ListView lvSearchResults;
-    private DatabaseHelper dbHelper;
+    private SessionManager sessionManager;
+    private long userId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,8 +34,8 @@ public class SearchActivity extends AppCompatActivity {
         Button btnSearch = findViewById(R.id.btnSearch);
         lvSearchResults = findViewById(R.id.lvSearchResults);
 
-        // Initialize database
-        dbHelper = new DatabaseHelper(this);
+        sessionManager = new SessionManager(this);
+        userId = sessionManager.getUserId();
 
         // Set button click
         btnSearch.setOnClickListener(v -> searchTasks());
@@ -44,30 +49,32 @@ public class SearchActivity extends AppCompatActivity {
             return;
         }
 
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
-        Cursor cursor = db.rawQuery(
-            "SELECT title FROM tasks WHERE title LIKE ?",
-                new String[]{"%" + query + "%"}
-        );
-
         ArrayList<String> results = new ArrayList<>();
+        String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
+        ApiClient.get("/api/tasks?userId=" + userId + "&search=" + encoded, new ApiClient.Callback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                JSONArray tasks = response.optJSONArray("tasks");
+                if (tasks != null) {
+                    for (int i = 0; i < tasks.length(); i++) {
+                        JSONObject task = tasks.optJSONObject(i);
+                        if (task == null) continue;
+                        results.add(task.optString("title", "Untitled"));
+                    }
+                }
 
-        while (cursor.moveToNext()) {
-            String taskTitle = cursor.getString(cursor.getColumnIndexOrThrow("title"));
-            results.add(taskTitle);
-        }
-        cursor.close();
+                if (results.isEmpty()) {
+                    Toast.makeText(SearchActivity.this, "No tasks found", Toast.LENGTH_SHORT).show();
+                }
 
-        if (results.isEmpty()) {
-            Toast.makeText(this, "No tasks found", Toast.LENGTH_SHORT).show();
-        }
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(SearchActivity.this, android.R.layout.simple_list_item_1, results);
+                lvSearchResults.setAdapter(adapter);
+            }
 
-        // Display results
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_list_item_1,
-                results
-        );
-        lvSearchResults.setAdapter(adapter);
+            @Override
+            public void onError(String errorMessage) {
+                Toast.makeText(SearchActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }
